@@ -32,16 +32,17 @@ def get_latest_notice(driver):
     notices = soup.select('tbody tr')
     recent_notices = []
     for notice in notices:
-        date_td = notice.find_all('td', class_='mobileNone')[1].text.strip()
+        date_td = notice.find('td', class_='kboard-list-date').text.strip()
         notice_date = datetime.strptime(date_td, "%Y.%m.%d")
         
         if (datetime.now() - notice_date).days <= 100:
-            title = notice.find('strong', class_='cutText').text.strip()
+            title = notice.find('div', class_='kboard-default-cut-strings').text.strip()
             link = notice.find('a')['href']
-            link_id = link.split('(')[1].split(')')[0]
-            recent_notices.append(f"{title} \n https://www.sojoong.kr/www/notice/view/{link_id}")
+            full_link = f"https://eaierc.jnu.ac.kr{link}"
+            recent_notices.append(f"{title}\n{full_link}")
+        else:
+            break
     return recent_notices
-
 # 카카오톡으로 메시지 보내기
 def send_to_kakao(messages):
     pyautogui.moveTo(x_win, y_win)
@@ -55,7 +56,7 @@ def send_to_kakao(messages):
     pyautogui.doubleClick()
     time.sleep(3)
     
-    pyperclip.copy("오늘의 알림 \n 소중사업단")
+    pyperclip.copy("오늘의 알림 \nEnergy+ai")
     pyautogui.hotkey("ctrl", "v")
     pyautogui.hotkey("shift", "enter")
     time.sleep(1)
@@ -65,10 +66,12 @@ def send_to_kakao(messages):
         pyautogui.hotkey("ctrl", "v")
         pyautogui.hotkey("shift", "enter")
         time.sleep(1)
+    pyperclip.copy("--------------------------------------------")
+    pyautogui.hotkey("ctrl", "v")
     pyautogui.press('enter')
     time.sleep(1)
 
-url = 'https://www.sojoong.kr/www/notice/'
+url = 'https://eaierc.jnu.ac.kr/community/notice/'
 driver = driversetup(url)
 latest_notices = get_latest_notice(driver)
 
