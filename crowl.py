@@ -7,6 +7,7 @@ from selenium.webdriver import ChromeOptions
 from webdriver_manager.chrome import ChromeDriverManager
 from datetime import datetime
 import pyperclip
+import pyshorteners
 
 # 좌표 설정
 x_win = 1403
@@ -17,6 +18,10 @@ x_chat = 1735
 y_chat = 111
 
 setting_date = 5
+
+# URL 단축 설정
+shortener = pyshorteners.Shortener()
+
 
 # 웹드라이버 설정
 def driversetup(url):
@@ -41,7 +46,9 @@ def get_latest_notice(driver, url_type):
                 title = notice.find('strong', class_='cutText').text.strip()
                 link = notice.find('a')['href']
                 link_id = link.split('(')[1].split(')')[0]
-                recent_notices.append(f"{title} \n https://{url_type}.kr/www/notice/view/{link_id}")   
+                full_link = f"https://{url_type}.kr/www/notice/view/{link_id}"
+                short_link = shortener.tinyurl.short(full_link)
+                recent_notices.append(f"{title}\n{short_link}\n")   
             else:
                 break
     elif url_type == "eaierc":
@@ -52,14 +59,15 @@ def get_latest_notice(driver, url_type):
                 title = notice.find('div', class_='kboard-default-cut-strings').text.strip()
                 link = notice.find('a')['href']
                 full_link = f"https://eaierc.jnu.ac.kr{link}"
-                recent_notices.append(f"{title}\n{full_link}")
+                short_link = shortener.tinyurl.short(full_link)
+                recent_notices.append(f"{title}\n{short_link}\n")
             else:
                 break
 
     return recent_notices
 
 # 카카오톡으로 메시지 보내기
-def send_to_kakao(messages, header):
+def send_to_kakao(messages):
     pyautogui.moveTo(x_win, y_win)
     pyautogui.doubleClick()
     time.sleep(15)
@@ -71,7 +79,7 @@ def send_to_kakao(messages, header):
     pyautogui.doubleClick()
     time.sleep(3)
     
-    pyperclip.copy(f"오늘의 알림 \n{header}")
+    pyperclip.copy("오늘의 알림")
     pyautogui.hotkey("ctrl", "v")
     pyautogui.hotkey("shift", "enter")
     time.sleep(1)
@@ -83,6 +91,8 @@ def send_to_kakao(messages, header):
         time.sleep(1)
     pyautogui.press('enter')
     time.sleep(1)
+    pyautogui.press('esc')
+    pyautogui.press('esc')
 
 # URL 및 알림 유형 설정
 urls = [
@@ -91,10 +101,16 @@ urls = [
     ('https://eaierc.jnu.ac.kr/community/notice/', 'Energy+ai', 'eaierc'),
     ('https://jnu.nccoss.kr/www/notice/', '차통단', 'jnu.nccoss')
 ]
+
+# 메인 실행 부분
+all_notices = []
 time.sleep(10)
 for url, header, url_type in urls:
     driver = driversetup(url)
     latest_notices = get_latest_notice(driver, url_type)
     
     if latest_notices:
-        send_to_kakao(latest_notices, header)
+        all_notices.extend([f"{header} - {notice}" for notice in latest_notices])
+
+if all_notices:
+    send_to_kakao(all_notices)
